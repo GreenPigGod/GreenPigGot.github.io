@@ -1,9 +1,18 @@
-// ページを閉じる処理（ブラウザで許可されている場合のみ）
-function closeWindow() {
-    window.close();
+body {
+  font-family: Arial, sans-serif;
+  padding: 2rem;
+  background-color: #f5f5f5;
+  color: #333;
 }
 
-// 自動的に閉じる（ブラウザで許可されない場合があるので注意）
-setTimeout(function() {
-    window.close();
-}, 3000);
+h1 {
+  color: #0072c6;
+}
+
+pre {
+  background-color: #eaeaea;
+  padding: 1rem;
+  border-radius: 5px;
+  font-size: 1.2rem;
+  word-wrap: break-word;
+}
