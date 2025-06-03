@@ -1,14 +1,53 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Authorization Code</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>私の制作物</title>
   <link rel="stylesheet" href="style.css">
-  <script src="script.js" defer></script>
 </head>
 <body>
-  <h1>認可コード</h1>
-  <p>以下のコードをコピーして、アプリに貼り付けてください：</p>
-  <pre id="code">読み込み中...</pre>
+  <header>
+    <h1>私のポートフォリオ</h1>
+    <nav>
+      <ul>
+        <li><a href="#about">自己紹介</a></li>
+        <li><a href="#works">制作物</a></li>
+        <li><a href="#contact">連絡先</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <section id="about">
+    <h2>自己紹介</h2>
+    <p>こんにちは！私は創作が大好きな開発者です。</p>
+  </section>
+
+  <section id="works">
+    <h2>制作物一覧</h2>
+    <div class="works-container">
+      <div class="work-card">
+        <h3>アプリA</h3>
+        <p>Reactで作ったアプリです。</p>
+        <a href="#">→ 詳細を見る</a>
+      </div>
+      <div class="work-card">
+        <h3>サイトB</h3>
+        <p>HTML/CSS/JSで構築したシンプルなWebサイト。</p>
+        <a href="#">→ サイトを見る</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <h2>連絡先</h2>
+    <p>お問い合わせは <a href="mailto:your.email@example.com">メール</a> にてお願いします。</p>
+  </section>
+
+  <footer>
+    <p>&copy; 2025 私の名前</p>
+  </footer>
+
+  <script src="script.js"></script>
 </body>
 </html>
