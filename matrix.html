@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3×3 行列掛け算チャレンジ</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f7f7ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      padding: 2rem;
+    }
+    h1 { font-size: 1.75rem; margin: 0; }
+    #timer { font-size: 1.5rem; }
+    table { border-collapse: collapse; margin: 0.5rem; }
+    td {
+      width: 2.5rem;
+      height: 2.5rem;
+      text-align: center;
+      border: 1px solid #bbb;
+    }
+    input[type="number"] {
+      width: 2.5rem;
+      height: 2.5rem;
+      text-align: center;
+      border: 1px solid #888;
+      border-radius: 4px;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      background: #4f46e5;
+      color: #fff;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:disabled { opacity: 0.4; cursor: default; }
+    #score { font-size: 1.25rem; margin-top: 0.5rem; }
+    #result { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>3×3 行列掛け算チャレンジ</h1>
+  <div id="timer">10:00</div>
+
+  <div id="matrices"></div>
+
+  <form id="answerForm"></form>
+
+  <button id="submitBtn">回答する</button>
+  <button id="skipBtn">スキップ</button>
+
+  <div id="score">正解数: <span id="correct">0</span> / <span id="total">0</span></div>
+  <div id="result"></div>
+
+  <script>
+    // ====== ユーティリティ ======
+    const RAND_MIN = -5, RAND_MAX = 5;
+    const DURATION_SEC = 600; // 10 分
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function generateMatrix() {
+      return Array.from({ length: 3 }, () => Array.from({ length: 3 }, () => randomInt(RAND_MIN, RAND_MAX)));
+    }
+
+    function multiply(a, b) {
+      const c = Array.from({ length: 3 }, () => Array(3).fill(0));
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          for (let k = 0; k < 3; k++) {
+            c[i][j] += a[i][k] * b[k][j];
+          }
+        }
+      }
+      return c;
+    }
+
+    function matrixToTable(matrix, editable = false, prefix = "") {
+      const table = document.createElement("table");
+      matrix.forEach((row, i) => {
+        const tr = document.createElement("tr");
+        row.forEach((val, j) => {
+          const td = document.createElement("td");
+          if (editable) {
+            const input = document.createElement("input");
+            input.type = "number";
+            input.name = `${prefix}${i}${j}`;
+            input.required = true;
+            td.appendChild(input);
+          } else {
+            td.textContent = val;
+          }
+          tr.appendChild(td);
+        });
+        table.appendChild(tr);
+      });
+      return table;
+    }
+
+    // ====== 状態 ======
+    let currentA, currentB, currentC;
+    let correctCount = 0, totalCount = 0;
+    let remaining = DURATION_SEC;
+    let timerId;
+
+    // ====== DOM ======
+    const matricesDiv = document.getElementById("matrices");
+    const answerForm = document.getElementById("answerForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const skipBtn = document.getElementById("skipBtn");
+    const timerEl = document.getElementById("timer");
+    const correctEl = document.getElementById("correct");
+    const totalEl = document.getElementById("total");
+    const resultEl = document.getElementById("result");
+
+    // ====== ロギング ======
+    const attempts = [];
+
+    function logAttempt(isCorrect) {
+      const attempt = {
+        timestamp: Date.now(),
+        matrixA: currentA,
+        matrixB: currentB,
+        answer: Array.from(answerForm.elements).map(e => Number(e.value)),
+        correct: currentC.flat(),
+        isCorrect
+      };
+      attempts.push(attempt);
+      // EEG 連携用カスタムイベント
+      window.dispatchEvent(new CustomEvent("matrixAttempt", { detail: attempt }));
+    }
+
+    function nextProblem() {
+      answerForm.innerHTML = "";
+      matricesDiv.innerHTML = "";
+      currentA = generateMatrix();
+      currentB = generateMatrix();
+      currentC = multiply(currentA, currentB);
+
+      matricesDiv.appendChild(matrixToTable(currentA));
+      const xEl = document.createElement("div");
+      xEl.textContent = "×";
+      xEl.style.fontSize = "1.5rem";
+      xEl.style.margin = "0.25rem";
+      matricesDiv.appendChild(xEl);
+      matricesDiv.appendChild(matrixToTable(currentB));
+      const eqEl = document.createElement("div");
+      eqEl.textContent = "=";
+      eqEl.style.fontSize = "1.5rem";
+      eqEl.style.margin = "0.25rem";
+      matricesDiv.appendChild(eqEl);
+      answerForm.appendChild(matrixToTable(Array(3).fill(Array(3).fill("")), true, "cell"));
+    }
+
+    function checkAnswer() {
+      const userVals = [];
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          const val = Number(answerForm.elements[`cell${i}${j}`].value);
+          if (isNaN(val)) return false;
+          userVals.push(val);
+        }
+      }
+      return userVals.every((v, idx) => v === currentC.flat()[idx]);
+    }
+
+    answerForm.addEventListener("submit", e => {
+      e.preventDefault();
+      handleSubmit();
+    });
+
+    submitBtn.addEventListener("click", handleSubmit);
+    skipBtn.addEventListener("click", () => {
+      totalCount++;
+      totalEl.textContent = totalCount;
+      logAttempt(false);
+      resultEl.textContent = "スキップしました。次の問題へ。";
+      nextProblem();
+    });
+
+    function handleSubmit() {
+      if (!answerForm.checkValidity()) {
+        answerForm.reportValidity();
+        return;
+      }
+      const correct = checkAnswer();
+      totalCount++;
+      if (correct) correctCount++;
+      correctEl.textContent = correctCount;
+      totalEl.textContent = totalCount;
+      logAttempt(correct);
+      resultEl.textContent = correct ? "正解！" : "不正解...";
+      nextProblem();
+    }
+
+    function updateTimer() {
+      if (remaining <= 0) {
+        clearInterval(timerId);
+        submitBtn.disabled = true;
+        skipBtn.disabled = true;
+        answerForm.querySelectorAll("input").forEach(i => i.disabled = true);
+        resultEl.textContent = `終了！正解数は ${correctCount} / ${totalCount}`;
+        console.table(attempts); // デバッグ用
+        return;
+      }
+      remaining--;
+      const m = String(Math.floor(remaining / 60)).padStart(2, "0");
+      const s = String(remaining % 60).padStart(2, "0");
+      timerEl.textContent = `${m}:${s}`;
+    }
+
+    // ====== 初期化 ======
+    nextProblem();
+    timerId = setInterval(updateTimer, 1000);
+  </script>
+</body>
+</html>
