@@ -42,6 +42,13 @@
     button:disabled { opacity: 0.4; cursor: default; }
     #score { font-size: 1.25rem; margin-top: 0.5rem; }
     #result { font-weight: bold; }
+    #matrices {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
   </style>
 </head>
 <body>
@@ -62,9 +69,8 @@
   <div id="result"></div>
 
   <script>
-    // ====== ユーティリティ ======
     const RAND_MIN = -5, RAND_MAX = 5;
-    const DURATION_SEC = 600; // 10 分
+    const DURATION_SEC = 600;
 
     function randomInt(min, max) {
       return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -108,13 +114,11 @@
       return table;
     }
 
-    // ====== 状態 ======
     let currentA, currentB, currentC;
     let correctCount = 0, totalCount = 0;
     let remaining = DURATION_SEC;
     let timerId;
 
-    // ====== DOM ======
     const matricesDiv = document.getElementById("matrices");
     const answerForm = document.getElementById("answerForm");
     const submitBtn  = document.getElementById("submitBtn");
@@ -125,7 +129,6 @@
     const totalEl    = document.getElementById("total");
     const resultEl   = document.getElementById("result");
 
-    // ====== ロギング ======
     const attempts = [];
 
     function countCorrectComponents() {
@@ -135,11 +138,11 @@
         for (let j = 0; j < 3; j++) {
           const input = answerForm.elements[`cell${i}${j}`];
           const v = Number(input.value);
-          if (isNaN(v)) return null; // 未入力あり
+          if (isNaN(v)) return null;
           userVals.push(v);
         }
       }
-      return userVals.filter((v, idx) => v === correctVals[idx]).length; // 0–9
+      return userVals.filter((v, idx) => v === correctVals[idx]).length;
     }
 
     function logAttempt(correctComponents) {
@@ -152,7 +155,6 @@
         userAnswer         : Array.from(answerForm.elements).map(e => Number(e.value))
       };
       attempts.push(attempt);
-      // EEG 連携用カスタムイベント（必要なら）
       window.dispatchEvent(new CustomEvent("matrixAttempt", { detail: attempt }));
     }
 
@@ -164,35 +166,21 @@
       currentC = multiply(currentA, currentB);
 
       matricesDiv.appendChild(matrixToTable(currentA));
-      const xEl = document.createElement("div");
-      xEl.textContent = "×";
-      xEl.style.fontSize = "1.5rem";
-      xEl.style.margin = "0.25rem";
-      matricesDiv.appendChild(xEl);
+      matricesDiv.appendChild(Object.assign(document.createElement("div"), {textContent:"×", style: "font-size:1.5rem;margin:0.25rem;"}));
       matricesDiv.appendChild(matrixToTable(currentB));
-      const eqEl = document.createElement("div");
-      eqEl.textContent = "=";
-      eqEl.style.fontSize = "1.5rem";
-      eqEl.style.margin = "0.25rem";
-      matricesDiv.appendChild(eqEl);
+      matricesDiv.appendChild(Object.assign(document.createElement("div"), {textContent:"=", style: "font-size:1.5rem;margin:0.25rem;"}));
       answerForm.appendChild(matrixToTable(Array.from({length:3}, () => Array(3).fill("")), true, "cell"));
     }
 
-    // ====== ハンドラ ======
-
     function handleSubmit() {
       if (!answerForm.checkValidity()) { answerForm.reportValidity(); return; }
-
       const nCorrect = countCorrectComponents();
-      if (nCorrect === null) return; // 未入力
-
+      if (nCorrect === null) return;
       totalCount++;
-      if (nCorrect === 9) correctCount++; // 全成分一致のみ「完全正解」
+      if (nCorrect === 9) correctCount++;
       correctEl.textContent = correctCount;
       totalEl.textContent   = totalCount;
-
       logAttempt(nCorrect);
-
       resultEl.textContent = nCorrect === 9 ? "全問正解！" : `部分正解 (${nCorrect}/9)`;
       nextProblem();
     }
@@ -234,13 +222,11 @@
       timerEl.textContent = `${m}:${s}`;
     }
 
-    // ====== イベント登録 ======
     answerForm.addEventListener("submit", e => { e.preventDefault(); handleSubmit(); });
     submitBtn.addEventListener("click", handleSubmit);
     skipBtn.addEventListener("click", handleSkip);
     csvBtn.addEventListener("click", downloadCsv);
 
-    // ====== 初期化 ======
     nextProblem();
     timerId = setInterval(updateTimer, 1000);
   </script>
