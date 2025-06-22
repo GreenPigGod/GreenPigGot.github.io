@@ -65,17 +65,33 @@ const matDiv=$("#matrices"),timerEl=$("#timer"),corrEl=$("#correct"),totEl=$("#t
 const submitBtn=$("#submitBtn"),skipBtn=$("#skipBtn"),csvBtn=$("#csvBtn"),logBtn=$("#logBtn");
 /* --------- 問題生成 --------- */
 function next(){
-  matDiv.innerHTML="";
-  A=genMat();B=genMat();C=mul(A,B);
-  matDiv.appendChild(tbl(A));matDiv.appendChild(span("×"));matDiv.appendChild(tbl(B));matDiv.appendChild(span("="));
-  const ansTbl=tbl(Array.from({length:3},()=>Array(3).fill("") ),true,"c");
+  matDiv.innerHTML = "";
+  A = genMat(); B = genMat(); C = mul(A, B);
+
+  // 横並び用のラッパー div を作る
+  const rowDiv = document.createElement("div");
+  rowDiv.style.display = "flex";
+  rowDiv.style.alignItems = "center";
+  rowDiv.style.justifyContent = "center";
+  rowDiv.style.gap = "1rem"; // 要素間に少し隙間を
+
+  rowDiv.appendChild(tbl(A));
+  rowDiv.appendChild(span("×"));
+  rowDiv.appendChild(tbl(B));
+  rowDiv.appendChild(span("="));
+
+  matDiv.appendChild(rowDiv); // まとめて挿入
+
+  // 答えの入力欄は下に
+  const ansTbl = tbl(Array.from({ length: 3 }, () => Array(3).fill("")), true, "c");
   matDiv.appendChild(ansTbl);
-  const inps=[...ansTbl.querySelectorAll("input")];
+
+  const inps = [...ansTbl.querySelectorAll("input")];
   inps[0].focus();
-  inps.forEach((inp,idx)=>{
-    const r=Math.floor(idx/3),c=idx%3;
-    inp.addEventListener("input",e=>handle(e, r,c,inps));
-    inp.addEventListener("keydown",e=>nav(e,inps));
+  inps.forEach((inp, idx) => {
+    const r = Math.floor(idx / 3), c = idx % 3;
+    inp.addEventListener("input", e => handle(e, r, c, inps));
+    inp.addEventListener("keydown", e => nav(e, inps));
   });
 }
 const span=s=>Object.assign(document.createElement("div"),{textContent:s,style:"font-size:1.5rem"});
