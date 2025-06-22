@@ -56,12 +56,23 @@
       justify-content: center;
       flex-wrap: wrap;
     }
+    #problem {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
   </style>
 </head>
 <body>
   <h1>3×3 行列掛け算チャレンジ</h1>
   <div id="timer">10:00</div>
-  <div id="matrices"></div>
+  <div id="problem">
+    <div id="matrices"></div>
+    <div id="answerArea"></div>
+  </div>
   <div style="display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center;">
     <button id="submitBtn" type="button">回答する</button>
     <button id="skipBtn"   type="button">スキップ</button>
