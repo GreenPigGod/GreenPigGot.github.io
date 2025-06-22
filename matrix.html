@@ -98,19 +98,21 @@ function matrixTable(matrix, editable = false, prefix = "") {
       const td = document.createElement("td");
       if (editable) {
         const input = document.createElement("input");
-        Object.assign(input, {
-          type: "number",
-          name: `${prefix}${i}${j}`,
-          dataset: { row: i, col: j }
-        });
+        input.type = "number";
+        input.name = `${prefix}${i}${j}`;
+        input.dataset.row = i;
+        input.dataset.col = j;
         td.appendChild(input);
-      } else td.textContent = val;
+      } else {
+        td.textContent = val;
+      }
       tr.appendChild(td);
     });
     table.appendChild(tr);
   });
   return table;
 }
+
 let currentA, currentB, currentC;
 let correctMatrices = 0, totalMatrices = 0;
 let remaining = DURATION_SEC, timerId;
