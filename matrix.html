@@ -5,288 +5,123 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3×3 行列掛け算チャレンジ</title>
   <style>
-    :root {
-      --green: #c8f7c5;
-      --red: #f7c5c5;
-    }
-    body {
-      font-family: system-ui, sans-serif;
-      background: #f7f7ff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-      padding: 2rem;
-    }
-    h1 { font-size: 1.75rem; margin: 0; }
-    #timer { font-size: 1.5rem; }
-    table { border-collapse: collapse; margin: 0.5rem; }
-    td {
-      width: 2.5rem;
-      height: 2.5rem;
-      text-align: center;
-      border: 1px solid #bbb;
-    }
-    input[type="number"] {
-      width: 2.5rem;
-      height: 2.5rem;
-      text-align: center;
-      border: 1px solid #888;
-      border-radius: 4px;
-      outline: none;
-    }
-    input.correct { background: var(--green); }
-    input.wrong   { background: var(--red);   }
-    button {
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 6px;
-      background: #4f46e5;
-      color: #fff;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-    button:disabled { opacity: 0.4; cursor: default; }
-    #score { font-size: 1.25rem; margin-top: 0.5rem; }
-    #result { font-weight: bold; }
-    #matrices {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    #problem {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
+    :root{--green:#c8f7c5;--red:#f7c5c5;--purple:#4f46e5}
+    body{font-family:sans-serif;background:#f7f7ff;text-align:center;padding:2rem}
+    table{margin:0.5rem auto;border-collapse:collapse}
+    td{width:2.5rem;height:2.5rem;border:1px solid #bbb;text-align:center}
+    input[type="number"]{width:100%;height:100%;border:none;text-align:center;font-size:1rem}
+    input.correct{background:var(--green)}
+    input.wrong{background:var(--red)}
+    button{margin:0.3rem;padding:0.5rem 1rem;background:var(--purple);color:#fff;border:none;border-radius:6px;cursor:pointer}
+    button:disabled{opacity:.4;cursor:default}
+    #problem{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:1rem}
+    #score,#timer{font-size:1.25rem;margin:0.3rem}
   </style>
 </head>
 <body>
   <h1>3×3 行列掛け算チャレンジ</h1>
   <div id="timer">10:00</div>
   <div id="problem">
-    <div id="matrices">
-      <table>
-  <tr>
-    <td><input type="number" value="1"></td>
-    <td><input type="number" value="2"></td>
-    <td><input type="number" value="3"></td>
-  </tr>
-  <tr>
-    <td><input type="number" value="4"></td>
-    <td><input type="number" value="5"></td>
-    <td><input type="number" value="6"></td>
-  </tr>
-  <tr>
-    <td><input type="number" value="7"></td>
-    <td><input type="number" value="8"></td>
-    <td><input type="number" value="9"></td>
-  </tr>
-</table>
-
-    </div>
-    <div id="answerArea"></div>
+    <div id="matrices"></div>
   </div>
-  <div style="display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center;">
-    <button id="submitBtn" type="button">回答する</button>
-    <button id="skipBtn"   type="button">スキップ</button>
-    <button id="csvBtn"    type="button">CSV ダウンロード</button>
-    <button id="logBtn"    type="button">入力ログDL</button>
+  <div>
+    <button id="submitBtn">回答する</button>
+    <button id="skipBtn">スキップ</button>
+    <button id="csvBtn">CSV ダウンロード</button>
+    <button id="logBtn">入力ログDL</button>
   </div>
   <div id="score">正解数: <span id="correct">0</span> / <span id="total">0</span></div>
   <div id="result"></div>
 <script>
-const RAND_MIN = -5, RAND_MAX = 5;
-const DURATION_SEC = 600;
-const $ = (sel) => document.querySelector(sel);
-function randomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-function generateMatrix() {
-  return Array.from({ length: 3 }, () => Array.from({ length: 3 }, () => randomInt(RAND_MIN, RAND_MAX)));
-}
-function multiply(a, b) {
-  const c = Array.from({ length: 3 }, () => Array(3).fill(0));
-  for (let i = 0; i < 3; i++) {
-    for (let j = 0; j < 3; j++) {
-      for (let k = 0; k < 3; k++) c[i][j] += a[i][k] * b[k][j];
-    }
-  }
-  return c;
-}
-function matrixTable(matrix, editable = false, prefix = "") {
-  const table = document.createElement("table");
-  matrix.forEach((row, i) => {
-    const tr = document.createElement("tr");
-    row.forEach((val, j) => {
-      const td = document.createElement("td");
-      if (editable) {
-        const input = document.createElement("input");
-        Object.assign(input, {
-          type: "number",
-          name: `${prefix}${i}${j}`,
-          dataset: { row: i, col: j }
-        });
-        td.appendChild(input);
-      } else td.textContent = val;
+/* --------- ユーティリティ --------- */
+const RAND_MIN=-5,RAND_MAX=5,DURATION=600;
+const $=s=>document.querySelector(s);
+const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const genMat=()=>Array.from({length:3},()=>Array.from({length:3},()=>rand(RAND_MIN,RAND_MAX)));
+const mul=(A,B)=>A.map((r,i)=>B[0].map((_,j)=>r.reduce((s,_,k)=>s+A[i][k]*B[k][j],0)));
+const tbl=(m,editable,prefix="")=>{
+  const t=document.createElement("table");
+  m.forEach((r,i)=>{
+    const tr=document.createElement("tr");
+    r.forEach((v,j)=>{
+      const td=document.createElement("td");
+      if(editable){
+        const inp=document.createElement("input");
+        inp.type="number";
+        inp.name=`${prefix}${i}${j}`;
+        td.appendChild(inp);
+      }else td.textContent=v;
       tr.appendChild(td);
     });
-    table.appendChild(tr);
+    t.appendChild(tr);
   });
-  return table;
-}
-let currentA, currentB, currentC;
-let correctMatrices = 0, totalMatrices = 0;
-let remaining = DURATION_SEC, timerId;
-const attempts = [], inputLogs = [];
-const matricesDiv = $("#matrices");
-const submitBtn   = $("#submitBtn");
-const skipBtn     = $("#skipBtn");
-const csvBtn      = $("#csvBtn");
-const logBtn      = $("#logBtn");
-const timerEl     = $("#timer");
-const correctEl   = $("#correct");
-const totalEl     = $("#total");
-const resultEl    = $("#result");
-function nextProblem() {
-  matricesDiv.innerHTML = "";
-  currentA = generateMatrix();
-  currentB = generateMatrix();
-  currentC = multiply(currentA, currentB);
-  matricesDiv.appendChild(matrixTable(currentA));
-  matricesDiv.appendChild(exprSpan("×"));
-  matricesDiv.appendChild(matrixTable(currentB));
-  matricesDiv.appendChild(exprSpan("="));
-  const answerTable = matrixTable(Array.from({length:3},() => Array(3).fill("")), true, "cell");
-  matricesDiv.appendChild(answerTable);
-  const inputs = answerTable.querySelectorAll("input");
-  inputs[0].focus();
-  inputs.forEach((input, idx) => {
-    const r = Math.floor(idx / 3), c = idx % 3;
-    input.dataset.row = r; input.dataset.col = c;
-    input.addEventListener("input", (e) => handleCellInput(e, r, c, inputs));
-    input.addEventListener("keydown", (e) => handleArrowNav(e, inputs));
+  return t;
+};
+/* --------- 変数 --------- */
+let A,B,C;let correct=0,total=0;let remain=DURATION,tID;
+const attempts=[],cellLogs=[];
+/* --------- DOM --------- */
+const matDiv=$("#matrices"),timerEl=$("#timer"),corrEl=$("#correct"),totEl=$("#total"),resEl=$("#result");
+const submitBtn=$("#submitBtn"),skipBtn=$("#skipBtn"),csvBtn=$("#csvBtn"),logBtn=$("#logBtn");
+/* --------- 問題生成 --------- */
+function next(){
+  matDiv.innerHTML="";
+  A=genMat();B=genMat();C=mul(A,B);
+  matDiv.appendChild(tbl(A));matDiv.appendChild(span("×"));matDiv.appendChild(tbl(B));matDiv.appendChild(span("="));
+  const ansTbl=tbl(Array.from({length:3},()=>Array(3).fill("") ),true,"c");
+  matDiv.appendChild(ansTbl);
+  const inps=[...ansTbl.querySelectorAll("input")];
+  inps[0].focus();
+  inps.forEach((inp,idx)=>{
+    const r=Math.floor(idx/3),c=idx%3;
+    inp.addEventListener("input",e=>handle(e, r,c,inps));
+    inp.addEventListener("keydown",e=>nav(e,inps));
   });
 }
-function exprSpan(char){
-  return Object.assign(document.createElement("div"),{textContent:char,style:"font-size:1.5rem;margin:0.25rem;"});
-}
-function handleCellInput(e, r, c, inputs){
-  const val = Number(e.target.value);
-  if(Number.isNaN(val)) { e.target.classList.remove("correct","wrong"); return; }
-  const isCorrect = val === currentC[r][c];
-  e.target.classList.toggle("correct", isCorrect);
-  e.target.classList.toggle("wrong",   !isCorrect);
-  if(isCorrect && !e.target.disabled) {
-    e.target.disabled = true;
-    inputLogs.push({
-      timestamp: new Date().toISOString(),
-      row: r,
-      col: c,
-      value: val,
-      correct: currentC[r][c]
-    });
-    const next = [...inputs].find(inp => !inp.disabled);
-    if(next) next.focus();
+const span=s=>Object.assign(document.createElement("div"),{textContent:s,style:"font-size:1.5rem"});
+/* --------- 入力判定 --------- */
+function handle(e,r,c,inps){
+  const v=Number(e.target.value);if(Number.isNaN(v)){e.target.classList.remove("correct","wrong");return;}
+  const ok=v===C[r][c];
+  e.target.classList.toggle("correct",ok);e.target.classList.toggle("wrong",!ok);
+  if(ok&&!e.target.disabled){
+    e.target.disabled=true;cellLogs.push({time:new Date().toISOString(),row:r,col:c,val:v,correct:C[r][c]});
+    const nxt=inps.find(x=>!x.disabled);if(nxt)nxt.focus();
   }
-  if([...inputs].every(inp => inp.disabled)) {
-    matricesSolved(9);
-  }
+  if(inps.every(x=>x.disabled)) solved(9);
 }
-function handleArrowNav(e, inputs){
-  const keyMap = { ArrowRight:1, ArrowLeft:-1, ArrowDown:3, ArrowUp:-3 };
-  if(!(e.key in keyMap)) return;
-  e.preventDefault();
-  let idx = [...inputs].indexOf(e.target) + keyMap[e.key];
-  if(idx < 0) idx += 9; if(idx >= 9) idx -= 9;
-  inputs[idx].focus();
+function nav(e,inps){
+  const m={ArrowRight:1,ArrowLeft:-1,ArrowDown:3,ArrowUp:-3};if(!(e.key in m))return;e.preventDefault();
+  let i=inps.indexOf(e.target)+m[e.key];if(i<0)i+=9;if(i>=9)i-=9;inps[i].focus();
 }
-function matricesSolved(correctComponents){
-  totalMatrices++; correctMatrices++;
-  updateScore();
-  logAttempt(correctComponents);
-  resultEl.textContent = "全問正解！次へ進みます";
-  setTimeout(nextProblem, 600);
+function solved(comp){
+  total++;correct++;update();attempts.push({time:new Date().toISOString(),comp});
+  resEl.textContent="全問正解！次へ";setTimeout(next,600);
 }
-function handleSubmit(){
-  const inputs = matricesDiv.querySelectorAll("input");
-  const vals = [...inputs].map(inp => Number(inp.value));
-  const correctVals = currentC.flat();
-  const nCorrect = vals.filter((v,i)=>v===correctVals[i]).length;
-  totalMatrices++;
-  if(nCorrect===9) correctMatrices++;
-  updateScore();
-  logAttempt(nCorrect);
-  resultEl.textContent = nCorrect===9 ? "全問正解！" : `部分正解 (${nCorrect}/9)`;
-  nextProblem();
+/* --------- ボタン処理 --------- */
+function submit(){
+  const inps=[...matDiv.querySelectorAll("input")];
+  const n=inps.filter((x,i)=>Number(x.value)===C[Math.floor(i/3)][i%3]).length;
+  total++;if(n===9)correct++;update();attempts.push({time:new Date().toISOString(),comp:n});
+  resEl.textContent=n===9?"全問正解！":`部分正解 (${n}/9)`;next();
 }
-function handleSkip(){
-  totalMatrices++; updateScore();
-  logAttempt(0);
-  resultEl.textContent = "スキップしました。次の問題へ。";
-  nextProblem();
+function skip(){total++;update();attempts.push({time:new Date().toISOString(),comp:0});resEl.textContent="スキップ";next();}
+function update(){corrEl.textContent=correct;totEl.textContent=total;}
+/* --------- CSV --------- */
+function dlCSV(){
+  if(!attempts.length)return;let csv="time,correct\n"+attempts.map(a=>`${a.time},${a.comp}`).join("\n");download(csv,"matrix_log");
 }
-function updateScore(){
-  correctEl.textContent = correctMatrices;
-  totalEl.textContent   = totalMatrices;
+function dlCell(){
+  if(!cellLogs.length)return;let csv="time,row,col,val,correct\n"+cellLogs.map(l=>`${l.time},${l.row},${l.col},${l.val},${l.correct}`).join("\n");download(csv,"input_log");
 }
-function logAttempt(correctComponents){
-  const attempt = {
-    timestamp_utc: new Date().toISOString(),
-    correctComponents,
-    matrixA: currentA,
-    matrixB: currentB,
-    correctC: currentC
-  };
-  attempts.push(attempt);
-}
-function downloadCsv(){
-  if(!attempts.length) return;
-  let csv = "timestamp_utc,correct_components\n";
-  csv += attempts.map(a => `${a.timestamp_utc},${a.correctComponents}`).join("\n");
-  const blob = new Blob([csv],{type:"text/csv"});
-  const url = URL.createObjectURL(blob);
-  Object.assign(document.createElement("a"),{href:url,download:`matrix_log_${Date.now()}.csv`}).click();
-  URL.revokeObjectURL(url);
-}
-function downloadLogCsv(){
-  if(!inputLogs.length) return;
-  let csv = "timestamp,row,col,value,correct\n";
-  csv += inputLogs.map(log => `${log.timestamp},${log.row},${log.col},${log.value},${log.correct}`).join("\n");
-  const blob = new Blob([csv],{type:"text/csv"});
-  const url = URL.createObjectURL(blob);
-  Object.assign(document.createElement("a"),{href:url,download:`input_log_${Date.now()}.csv`}).click();
-  URL.revokeObjectURL(url);
-}
-function updateTimer(){
-  if(--remaining < 0){ endGame(); return; }
-  const m = String(Math.floor(remaining/60)).padStart(2,"0");
-  const s = String(remaining%60).padStart(2,"0");
-  timerEl.textContent = `${m}:${s}`;
-}
-function endGame(){
-  clearInterval(timerId);
-  matricesDiv.querySelectorAll("input").forEach(inp=>inp.disabled=true);
-  submitBtn.disabled = skipBtn.disabled = logBtn.disabled = true;
-  resultEl.textContent = `終了！正解数は ${correctMatrices} / ${totalMatrices}`;
-  // スコア用CSV
-  downloadCsv();
-  // 成分ごとの入力ログCSV（正解でロックされた瞬間の時刻入り）
-  downloadLogCsv();
-} / ${totalMatrices}`;
-  downloadCsv();
-}
-submitBtn.addEventListener("click", handleSubmit);
-skipBtn.addEventListener("click", handleSkip);
-csvBtn.addEventListener("click", downloadCsv);
-logBtn.addEventListener("click", downloadLogCsv);
-nextProblem();
-timerId = setInterval(updateTimer,1000);
+function download(txt,name){const b=new Blob([txt],{type:"text/csv"});const url=URL.createObjectURL(b);Object.assign(document.createElement("a"),{href:url,download:`${name}_${Date.now()}.csv`}).click();URL.revokeObjectURL(url);}
+/* --------- タイマー --------- */
+function tick(){if(--remain<0){end();return;}const m=String(Math.floor(remain/60)).padStart(2,"0"),s=String(remain%60).padStart(2,"0");timerEl.textContent=`${m}:${s}`;}
+function end(){clearInterval(tID);matDiv.querySelectorAll("input").forEach(i=>i.disabled=true);submitBtn.disabled=skipBtn.disabled=true;resEl.textContent=`終了！正解数 ${correct}/${total}`;dlCSV();dlCell();}
+/* --------- イベント --------- */
+submitBtn.onclick=submit;skipBtn.onclick=skip;csvBtn.onclick=dlCSV;logBtn.onclick=dlCell;
+/* --------- スタート --------- */
+next();tID=setInterval(tick,1000);
 </script>
 </body>
 </html>
