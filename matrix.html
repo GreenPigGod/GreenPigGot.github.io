@@ -133,7 +133,7 @@ function dlCell(){
 function download(txt,name){const b=new Blob([txt],{type:"text/csv"});const url=URL.createObjectURL(b);Object.assign(document.createElement("a"),{href:url,download:`${name}_${Date.now()}.csv`}).click();URL.revokeObjectURL(url);}
 /* --------- タイマー --------- */
 function tick(){if(--remain<0){end();return;}const m=String(Math.floor(remain/60)).padStart(2,"0"),s=String(remain%60).padStart(2,"0");timerEl.textContent=`${m}:${s}`;}
-function end(){clearInterval(tID);matDiv.querySelectorAll("input").forEach(i=>i.disabled=true);submitBtn.disabled=skipBtn.disabled=true;resEl.textContent=`終了！正解数 ${correct}/${total}`;dlCSV();dlCell();}
+function end(){clearInterval(tID);matDiv.querySelectorAll("input").forEach(i=>i.disabled=true);submitBtn.disabled=skipBtn.disabled=true;resEl.textContent=`終了！正解数 ${correct}/${total}`;dlCell();}
 /* --------- イベント --------- */
 submitBtn.onclick=submit;skipBtn.onclick=skip;csvBtn.onclick=dlCSV;logBtn.onclick=dlCell;
 /* --------- スタート --------- */
