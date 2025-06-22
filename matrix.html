@@ -52,8 +52,11 @@
 
   <form id="answerForm"></form>
 
-  <button id="submitBtn">回答する</button>
-  <button id="skipBtn">スキップ</button>
+  <div style="display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center;">
+    <button id="submitBtn" type="button">回答する</button>
+    <button id="skipBtn"   type="button">スキップ</button>
+    <button id="csvBtn"    type="button">CSV ダウンロード</button>
+  </div>
 
   <div id="score">正解数: <span id="correct">0</span> / <span id="total">0</span></div>
   <div id="result"></div>
@@ -114,27 +117,42 @@
     // ====== DOM ======
     const matricesDiv = document.getElementById("matrices");
     const answerForm = document.getElementById("answerForm");
-    const submitBtn = document.getElementById("submitBtn");
-    const skipBtn = document.getElementById("skipBtn");
-    const timerEl = document.getElementById("timer");
-    const correctEl = document.getElementById("correct");
-    const totalEl = document.getElementById("total");
-    const resultEl = document.getElementById("result");
+    const submitBtn  = document.getElementById("submitBtn");
+    const skipBtn    = document.getElementById("skipBtn");
+    const csvBtn     = document.getElementById("csvBtn");
+    const timerEl    = document.getElementById("timer");
+    const correctEl  = document.getElementById("correct");
+    const totalEl    = document.getElementById("total");
+    const resultEl   = document.getElementById("result");
 
     // ====== ロギング ======
     const attempts = [];
 
-    function logAttempt(isCorrect) {
+    function countCorrectComponents() {
+      const userVals = [];
+      const correctVals = currentC.flat();
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          const input = answerForm.elements[`cell${i}${j}`];
+          const v = Number(input.value);
+          if (isNaN(v)) return null; // 未入力あり
+          userVals.push(v);
+        }
+      }
+      return userVals.filter((v, idx) => v === correctVals[idx]).length; // 0–9
+    }
+
+    function logAttempt(correctComponents) {
       const attempt = {
-        timestamp: Date.now(),
-        matrixA: currentA,
-        matrixB: currentB,
-        answer: Array.from(answerForm.elements).map(e => Number(e.value)),
-        correct: currentC.flat(),
-        isCorrect
+        timestamp_utc      : new Date().toISOString(),
+        correctComponents  : correctComponents,
+        matrixA            : currentA,
+        matrixB            : currentB,
+        correctC           : currentC,
+        userAnswer         : Array.from(answerForm.elements).map(e => Number(e.value))
       };
       attempts.push(attempt);
-      // EEG 連携用カスタムイベント
+      // EEG 連携用カスタムイベント（必要なら）
       window.dispatchEvent(new CustomEvent("matrixAttempt", { detail: attempt }));
     }
 
@@ -157,58 +175,57 @@
       eqEl.style.fontSize = "1.5rem";
       eqEl.style.margin = "0.25rem";
       matricesDiv.appendChild(eqEl);
-      answerForm.appendChild(matrixToTable(Array(3).fill(Array(3).fill("")), true, "cell"));
+      answerForm.appendChild(matrixToTable(Array.from({length:3}, () => Array(3).fill("")), true, "cell"));
     }
 
-    function checkAnswer() {
-      const userVals = [];
-      for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-          const val = Number(answerForm.elements[`cell${i}${j}`].value);
-          if (isNaN(val)) return false;
-          userVals.push(val);
-        }
-      }
-      return userVals.every((v, idx) => v === currentC.flat()[idx]);
-    }
-
-    answerForm.addEventListener("submit", e => {
-      e.preventDefault();
-      handleSubmit();
-    });
-
-    submitBtn.addEventListener("click", handleSubmit);
-    skipBtn.addEventListener("click", () => {
-      totalCount++;
-      totalEl.textContent = totalCount;
-      logAttempt(false);
-      resultEl.textContent = "スキップしました。次の問題へ。";
-      nextProblem();
-    });
+    // ====== ハンドラ ======
 
     function handleSubmit() {
-      if (!answerForm.checkValidity()) {
-        answerForm.reportValidity();
-        return;
-      }
-      const correct = checkAnswer();
+      if (!answerForm.checkValidity()) { answerForm.reportValidity(); return; }
+
+      const nCorrect = countCorrectComponents();
+      if (nCorrect === null) return; // 未入力
+
       totalCount++;
-      if (correct) correctCount++;
+      if (nCorrect === 9) correctCount++; // 全成分一致のみ「完全正解」
       correctEl.textContent = correctCount;
-      totalEl.textContent = totalCount;
-      logAttempt(correct);
-      resultEl.textContent = correct ? "正解！" : "不正解...";
+      totalEl.textContent   = totalCount;
+
+      logAttempt(nCorrect);
+
+      resultEl.textContent = nCorrect === 9 ? "全問正解！" : `部分正解 (${nCorrect}/9)`;
       nextProblem();
+    }
+
+    function handleSkip() {
+      totalCount++;
+      totalEl.textContent = totalCount;
+      logAttempt(0);
+      resultEl.textContent = "スキップしました。次の問題へ。";
+      nextProblem();
+    }
+
+    function downloadCsv() {
+      if (attempts.length === 0) return;
+      let csv = "timestamp_utc,correct_components,total_components\n";
+      csv += attempts.map(a => `${a.timestamp_utc},${a.correctComponents},9`).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url;
+      a.download = `matrix_log_${new Date().toISOString().replace(/[:.]/g, "-")}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
     function updateTimer() {
       if (remaining <= 0) {
         clearInterval(timerId);
         submitBtn.disabled = true;
-        skipBtn.disabled = true;
+        skipBtn.disabled   = true;
         answerForm.querySelectorAll("input").forEach(i => i.disabled = true);
         resultEl.textContent = `終了！正解数は ${correctCount} / ${totalCount}`;
-        console.table(attempts); // デバッグ用
+        downloadCsv();
         return;
       }
       remaining--;
@@ -216,6 +233,12 @@
       const s = String(remaining % 60).padStart(2, "0");
       timerEl.textContent = `${m}:${s}`;
     }
+
+    // ====== イベント登録 ======
+    answerForm.addEventListener("submit", e => { e.preventDefault(); handleSubmit(); });
+    submitBtn.addEventListener("click", handleSubmit);
+    skipBtn.addEventListener("click", handleSkip);
+    csvBtn.addEventListener("click", downloadCsv);
 
     // ====== 初期化 ======
     nextProblem();
