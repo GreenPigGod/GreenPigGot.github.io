@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3×3 行列掛け算チャレンジ</title>
   <style>
+    :root {
+      --green: #c8f7c5;
+      --red: #f7c5c5;
+    }
     body {
       font-family: system-ui, sans-serif;
       background: #f7f7ff;
@@ -29,7 +33,10 @@
       text-align: center;
       border: 1px solid #888;
       border-radius: 4px;
+      outline: none;
     }
+    input.correct { background: var(--green); }
+    input.wrong   { background: var(--red);   }
     button {
       padding: 0.5rem 1rem;
       border: none;
@@ -55,10 +62,10 @@
   <h1>3×3 行列掛け算チャレンジ</h1>
   <div id="timer">10:00</div>
 
+  <!-- 問題と回答欄を横一列で並べるコンテナ -->
   <div id="matrices"></div>
 
-  <form id="answerForm"></form>
-
+  <!-- 点数表示など -->
   <div style="display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center;">
     <button id="submitBtn" type="button">回答する</button>
     <button id="skipBtn"   type="button">スキップ</button>
@@ -68,167 +75,205 @@
   <div id="score">正解数: <span id="correct">0</span> / <span id="total">0</span></div>
   <div id="result"></div>
 
-  <script>
-    const RAND_MIN = -5, RAND_MAX = 5;
-    const DURATION_SEC = 600;
+<script>
+/* ===== ユーティリティ ===== */
+const RAND_MIN = -5, RAND_MAX = 5;
+const DURATION_SEC = 600;
 
-    function randomInt(min, max) {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
+const $ = (sel) => document.querySelector(sel);
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+function generateMatrix() {
+  return Array.from({ length: 3 }, () => Array.from({ length: 3 }, () => randomInt(RAND_MIN, RAND_MAX)));
+}
+function multiply(a, b) {
+  const c = Array.from({ length: 3 }, () => Array(3).fill(0));
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      for (let k = 0; k < 3; k++) c[i][j] += a[i][k] * b[k][j];
     }
-
-    function generateMatrix() {
-      return Array.from({ length: 3 }, () => Array.from({ length: 3 }, () => randomInt(RAND_MIN, RAND_MAX)));
-    }
-
-    function multiply(a, b) {
-      const c = Array.from({ length: 3 }, () => Array(3).fill(0));
-      for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-          for (let k = 0; k < 3; k++) {
-            c[i][j] += a[i][k] * b[k][j];
-          }
-        }
-      }
-      return c;
-    }
-
-    function matrixToTable(matrix, editable = false, prefix = "") {
-      const table = document.createElement("table");
-      matrix.forEach((row, i) => {
-        const tr = document.createElement("tr");
-        row.forEach((val, j) => {
-          const td = document.createElement("td");
-          if (editable) {
-            const input = document.createElement("input");
-            input.type = "number";
-            input.name = `${prefix}${i}${j}`;
-            input.required = true;
-            td.appendChild(input);
-          } else {
-            td.textContent = val;
-          }
-          tr.appendChild(td);
+  }
+  return c;
+}
+function matrixTable(matrix, editable = false, prefix = "") {
+  const table = document.createElement("table");
+  matrix.forEach((row, i) => {
+    const tr = document.createElement("tr");
+    row.forEach((val, j) => {
+      const td = document.createElement("td");
+      if (editable) {
+        const input = document.createElement("input");
+        Object.assign(input, {
+          type: "number",
+          name: `${prefix}${i}${j}`,
+          dataset: { row: i, col: j }
         });
-        table.appendChild(tr);
-      });
-      return table;
-    }
+        td.appendChild(input);
+      } else td.textContent = val;
+      tr.appendChild(td);
+    });
+    table.appendChild(tr);
+  });
+  return table;
+}
 
-    let currentA, currentB, currentC;
-    let correctCount = 0, totalCount = 0;
-    let remaining = DURATION_SEC;
-    let timerId;
+/* ===== 変数 ===== */
+let currentA, currentB, currentC;
+let correctMatrices = 0, totalMatrices = 0;
+let remaining = DURATION_SEC, timerId;
+const attempts = [];
 
-    const matricesDiv = document.getElementById("matrices");
-    const answerForm = document.getElementById("answerForm");
-    const submitBtn  = document.getElementById("submitBtn");
-    const skipBtn    = document.getElementById("skipBtn");
-    const csvBtn     = document.getElementById("csvBtn");
-    const timerEl    = document.getElementById("timer");
-    const correctEl  = document.getElementById("correct");
-    const totalEl    = document.getElementById("total");
-    const resultEl   = document.getElementById("result");
+/* ===== DOM ===== */
+const matricesDiv = $("#matrices");
+const submitBtn   = $("#submitBtn");
+const skipBtn     = $("#skipBtn");
+const csvBtn      = $("#csvBtn");
+const timerEl     = $("#timer");
+const correctEl   = $("#correct");
+const totalEl     = $("#total");
+const resultEl    = $("#result");
 
-    const attempts = [];
+/* ===== 出題 ===== */
+function nextProblem() {
+  matricesDiv.innerHTML = "";
 
-    function countCorrectComponents() {
-      const userVals = [];
-      const correctVals = currentC.flat();
-      for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-          const input = answerForm.elements[`cell${i}${j}`];
-          const v = Number(input.value);
-          if (isNaN(v)) return null;
-          userVals.push(v);
-        }
-      }
-      return userVals.filter((v, idx) => v === correctVals[idx]).length;
-    }
+  currentA = generateMatrix();
+  currentB = generateMatrix();
+  currentC = multiply(currentA, currentB);
 
-    function logAttempt(correctComponents) {
-      const attempt = {
-        timestamp_utc      : new Date().toISOString(),
-        correctComponents  : correctComponents,
-        matrixA            : currentA,
-        matrixB            : currentB,
-        correctC           : currentC,
-        userAnswer         : Array.from(answerForm.elements).map(e => Number(e.value))
-      };
-      attempts.push(attempt);
-      window.dispatchEvent(new CustomEvent("matrixAttempt", { detail: attempt }));
-    }
+  // 行列表
+  matricesDiv.appendChild(matrixTable(currentA));
+  matricesDiv.appendChild(exprSpan("×"));
+  matricesDiv.appendChild(matrixTable(currentB));
+  matricesDiv.appendChild(exprSpan("="));
 
-    function nextProblem() {
-      answerForm.innerHTML = "";
-      matricesDiv.innerHTML = "";
-      currentA = generateMatrix();
-      currentB = generateMatrix();
-      currentC = multiply(currentA, currentB);
+  // 回答欄（formではなくdivで十分）
+  const answerTable = matrixTable(Array.from({length:3},() => Array(3).fill("")), true, "cell");
+  matricesDiv.appendChild(answerTable);
 
-      matricesDiv.appendChild(matrixToTable(currentA));
-      matricesDiv.appendChild(Object.assign(document.createElement("div"), {textContent:"×", style: "font-size:1.5rem;margin:0.25rem;"}));
-      matricesDiv.appendChild(matrixToTable(currentB));
-      matricesDiv.appendChild(Object.assign(document.createElement("div"), {textContent:"=", style: "font-size:1.5rem;margin:0.25rem;"}));
-      answerForm.appendChild(matrixToTable(Array.from({length:3}, () => Array(3).fill("")), true, "cell"));
-    }
+  // 最初の input にフォーカス
+  const inputs = answerTable.querySelectorAll("input");
+  inputs[0].focus();
 
-    function handleSubmit() {
-      if (!answerForm.checkValidity()) { answerForm.reportValidity(); return; }
-      const nCorrect = countCorrectComponents();
-      if (nCorrect === null) return;
-      totalCount++;
-      if (nCorrect === 9) correctCount++;
-      correctEl.textContent = correctCount;
-      totalEl.textContent   = totalCount;
-      logAttempt(nCorrect);
-      resultEl.textContent = nCorrect === 9 ? "全問正解！" : `部分正解 (${nCorrect}/9)`;
-      nextProblem();
-    }
+  // ===== 即時判定ロジック =====
+  inputs.forEach((input, idx) => {
+    const r = Math.floor(idx / 3), c = idx % 3;
+    input.dataset.row = r; input.dataset.col = c;
+    input.addEventListener("input", (e) => handleCellInput(e, r, c, inputs));
+    // 矢印キーで移動
+    input.addEventListener("keydown", (e) => handleArrowNav(e, inputs));
+  });
+}
+function exprSpan(char){
+  return Object.assign(document.createElement("div"),{textContent:char,style:"font-size:1.5rem;margin:0.25rem;"});
+}
+/* ===== 入力ハンドラ ===== */
+function handleCellInput(e, r, c, inputs){
+  const val = Number(e.target.value);
+  if(Number.isNaN(val)) { e.target.classList.remove("correct","wrong"); return; }
 
-    function handleSkip() {
-      totalCount++;
-      totalEl.textContent = totalCount;
-      logAttempt(0);
-      resultEl.textContent = "スキップしました。次の問題へ。";
-      nextProblem();
-    }
+  const isCorrect = val === currentC[r][c];
+  e.target.classList.toggle("correct", isCorrect);
+  e.target.classList.toggle("wrong",   !isCorrect);
 
-    function downloadCsv() {
-      if (attempts.length === 0) return;
-      let csv = "timestamp_utc,correct_components,total_components\n";
-      csv += attempts.map(a => `${a.timestamp_utc},${a.correctComponents},9`).join("\n");
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      a.href = url;
-      a.download = `matrix_log_${new Date().toISOString().replace(/[:.]/g, "-")}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+  if(isCorrect) {
+    e.target.disabled = true;
+    // 次の未入力セルへ自動フォーカス
+    const next = [...inputs].find(inp => !inp.disabled);
+    if(next) next.focus();
+  }
 
-    function updateTimer() {
-      if (remaining <= 0) {
-        clearInterval(timerId);
-        submitBtn.disabled = true;
-        skipBtn.disabled   = true;
-        answerForm.querySelectorAll("input").forEach(i => i.disabled = true);
-        resultEl.textContent = `終了！正解数は ${correctCount} / ${totalCount}`;
-        downloadCsv();
-        return;
-      }
-      remaining--;
-      const m = String(Math.floor(remaining / 60)).padStart(2, "0");
-      const s = String(remaining % 60).padStart(2, "0");
-      timerEl.textContent = `${m}:${s}`;
-    }
+  // 行列全体正解チェック
+  if([...inputs].every(inp => inp.disabled)) {
+    matricesSolved(9); // 9/9 正解
+  }
+}
+function handleArrowNav(e, inputs){
+  const keyMap = { ArrowRight:1, ArrowLeft:-1, ArrowDown:3, ArrowUp:-3 };
+  if(!(e.key in keyMap)) return;
+  e.preventDefault();
+  let idx = [...inputs].indexOf(e.target) + keyMap[e.key];
+  if(idx < 0) idx += 9; if(idx >= 9) idx -= 9;
+  inputs[idx].focus();
+}
 
-    answerForm.addEventListener("submit", e => { e.preventDefault(); handleSubmit(); });
-    submitBtn.addEventListener("click", handleSubmit);
-    skipBtn.addEventListener("click", handleSkip);
-    csvBtn.addEventListener("click", downloadCsv);
+/* ===== 判定 ===== */
+function matricesSolved(correctComponents){
+  totalMatrices++; correctMatrices++;
+  updateScore();
+  logAttempt(correctComponents);
+  resultEl.textContent = "全問正解！次へ進みます";
+  setTimeout(nextProblem, 600);
+}
+function handleSubmit(){
+  // 手動回答ボタン用。部分正解もカウント
+  const inputs = matricesDiv.querySelectorAll("input");
+  const vals = [...inputs].map(inp => Number(inp.value));
+  const correctVals = currentC.flat();
+  const nCorrect = vals.filter((v,i)=>v===correctVals[i]).length;
+  totalMatrices++;
+  if(nCorrect===9) correctMatrices++;
+  updateScore();
+  logAttempt(nCorrect);
+  resultEl.textContent = nCorrect===9 ? "全問正解！" : `部分正解 (${nCorrect}/9)`;
+  nextProblem();
+}
+function handleSkip(){
+  totalMatrices++; updateScore();
+  logAttempt(0);
+  resultEl.textContent = "スキップしました。次の問題へ。";
+  nextProblem();
+}
+function updateScore(){
+  correctEl.textContent = correctMatrices;
+  totalEl.textContent   = totalMatrices;
+}
 
-    nextProblem();
-    timerId = setInterval(updateTimer, 1000);
-  </script>
+/* ===== ログ & CSV ===== */
+function logAttempt(correctComponents){
+  const attempt = {
+    timestamp_utc: new Date().toISOString(),
+    correctComponents,
+    matrixA: currentA,
+    matrixB: currentB,
+    correctC: currentC
+  };
+  attempts.push(attempt);
+}
+function downloadCsv(){
+  if(!attempts.length) return;
+  let csv = "timestamp_utc,correct_components\n";
+  csv += attempts.map(a => `${a.timestamp_utc},${a.correctComponents}`).join("\n");
+  const blob = new Blob([csv],{type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  Object.assign(document.createElement("a"),{href:url,download:`matrix_log_${Date.now()}.csv`}).click();
+  URL.revokeObjectURL(url);
+}
+
+/* ===== タイマー ===== */
+function updateTimer(){
+  if(--remaining < 0){ endGame(); return; }
+  const m = String(Math.floor(remaining/60)).padStart(2,"0");
+  const s = String(remaining%60).padStart(2,"0");
+  timerEl.textContent = `${m}:${s}`;
+}
+function endGame(){
+  clearInterval(timerId);
+  matricesDiv.querySelectorAll("input").forEach(inp=>inp.disabled=true);
+  submitBtn.disabled = skipBtn.disabled = true;
+  resultEl.textContent = `終了！正解数は ${correctMatrices} / ${totalMatrices}`;
+  downloadCsv();
+}
+
+/* ===== イベント ===== */
+submitBtn.addEventListener("click", handleSubmit);
+skipBtn.addEventListener("click", handleSkip);
+csvBtn.addEventListener("click", downloadCsv);
+
+/* ===== スタート ===== */
+nextProblem();
+timerId = setInterval(updateTimer,1000);
+</script>
 </body>
 </html>
