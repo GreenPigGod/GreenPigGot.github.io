@@ -62,6 +62,7 @@
   <h1>3×3 行列掛け算チャレンジ</h1>
   <div id="timer">10:00</div>
   <div id="matrices"></div>
+  <div id="answerArea"></div>
   <div style="display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center;">
     <button id="submitBtn" type="button">回答する</button>
     <button id="skipBtn"   type="button">スキップ</button>
@@ -125,17 +126,28 @@ const totalEl     = $("#total");
 const resultEl    = $("#result");
 function nextProblem() {
   matricesDiv.innerHTML = "";
+  document.getElementById("answerArea").innerHTML = "";
+
   currentA = generateMatrix();
   currentB = generateMatrix();
   currentC = multiply(currentA, currentB);
+
   matricesDiv.appendChild(matrixTable(currentA));
   matricesDiv.appendChild(exprSpan("×"));
   matricesDiv.appendChild(matrixTable(currentB));
   matricesDiv.appendChild(exprSpan("="));
-  const answerTable = matrixTable(Array.from({length:3},() => Array(3).fill("")), true, "cell");
-  matricesDiv.appendChild(answerTable);
+
+  const answerTable = matrixTable(
+    Array.from({ length: 3 }, () => Array(3).fill("")),
+    true, "cell"
+  );
+
+  // ここで answerArea に追加
+  document.getElementById("answerArea").appendChild(answerTable);
+
   const inputs = answerTable.querySelectorAll("input");
-  inputs[0].focus();
+  if (inputs.length > 0) inputs[0].focus();
+
   inputs.forEach((input, idx) => {
     const r = Math.floor(idx / 3), c = idx % 3;
     input.dataset.row = r; input.dataset.col = c;
@@ -143,6 +155,7 @@ function nextProblem() {
     input.addEventListener("keydown", (e) => handleArrowNav(e, inputs));
   });
 }
+
 function exprSpan(char){
   return Object.assign(document.createElement("div"),{textContent:char,style:"font-size:1.5rem;margin:0.25rem;"});
 }
