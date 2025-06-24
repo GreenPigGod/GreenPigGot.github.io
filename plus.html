@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>100マス計算チャレンジ</title>
+  <style>
+    :root{--green:#c8f7c5;--red:#f7c5c5;--purple:#4f46e5}
+    body{font-family:sans-serif;background:#f7f7ff;text-align:center;padding:2rem}
+    table{margin:0.5rem auto;border-collapse:collapse}
+    td{width:2.5rem;height:2.5rem;border:1px solid #bbb;text-align:center}
+    input[type="number"]{width:100%;height:100%;border:none;text-align:center;font-size:1rem}
+    input.correct{background:var(--green)}
+    input.wrong{background:var(--red)}
+    button{margin:0.3rem;padding:0.5rem 1rem;background:var(--purple);color:#fff;border:none;border-radius:6px;cursor:pointer}
+    button:disabled{opacity:.4;cursor:default}
+    #score,#timer{font-size:1.25rem;margin:0.3rem}
+  </style>
+</head>
+<body>
+  <h1>100マス計算チャレンジ</h1>
+  <div id="timer">05:00</div>
+  <div id="problem"></div>
+  <button id="submitBtn">結果を確認</button>
+  <button id="csvBtn">CSVダウンロード</button>
+  <div id="score">正解数: <span id="correct">0</span> / <span id="total">100</span></div>
+  <div id="result"></div>
+<script>
+const $=s=>document.querySelector(s);
+const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const DURATION=300;
+let remain=DURATION,tID,correct=0;
+const cellLogs=[];
+
+function gen100(){
+  const table = document.createElement("table");
+  for(let r=0;r<10;r++){
+    const tr = document.createElement("tr");
+    for(let c=0;c<10;c++){
+      const a = rand(1,9), b = rand(1,9), ans = a*b;
+      const td = document.createElement("td");
+      const inp = document.createElement("input");
+      inp.type = "number";
+      inp.dataset.ans = ans;
+      inp.placeholder = `${a}×${b}`;
+      inp.addEventListener("change",()=>{
+        const val = Number(inp.value);
+        const ok = val === ans;
+        inp.classList.toggle("correct",ok);
+        inp.classList.toggle("wrong",!ok);
+        if(ok&&!inp.disabled){
+          inp.disabled = true;
+          correct++;
+          $("#correct").textContent = correct;
+          cellLogs.push({time:new Date().toISOString(),row:r,col:c,val:val,correct:ans});
+        }
+      });
+      td.appendChild(inp);
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+  $("#problem").appendChild(table);
+}
+function tick(){
+  if(--remain<0){end();return;}
+  const m=String(Math.floor(remain/60)).padStart(2,"0"),s=String(remain%60).padStart(2,"0");
+  $("#timer").textContent=`${m}:${s}`;
+}
+function end(){
+  clearInterval(tID);
+  document.querySelectorAll("input").forEach(i=>i.disabled=true);
+  $("#submitBtn").disabled = true;
+  $("#result").textContent = `終了！正解数 ${correct}/100`;
+  dlCSV();
+}
+function dlCSV(){
+  if(!cellLogs.length)return;
+  let csv="time,row,col,val,correct\n"+cellLogs.map(l=>`${l.time},${l.row},${l.col},${l.val},${l.correct}`).join("\n");
+  const b=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(b);
+  Object.assign(document.createElement("a"),{href:url,download:`hundredcell_${Date.now()}.csv`}).click();
+  URL.revokeObjectURL(url);
+}
+$("#submitBtn").onclick=end;
+$("#csvBtn").onclick=dlCSV;
+gen100();
+tID=setInterval(tick,1000);
+</script>
+</body>
+</html>
