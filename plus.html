@@ -43,7 +43,7 @@ function gen100(){
       inp.type = "number";
       inp.dataset.ans = ans;
       inp.placeholder = `${a}×${b}`;
-      inp.addEventListener("change",()=>{
+      inp.addEventListener("input",()=>{
         const val = Number(inp.value);
         const ok = val === ans;
         inp.classList.toggle("correct",ok);
