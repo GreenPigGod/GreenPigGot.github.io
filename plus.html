@@ -53,6 +53,9 @@ function gen100(){
           correct++;
           $("#correct").textContent = correct;
           cellLogs.push({time:new Date().toISOString(),row:r,col:c,val:val,correct:ans});
+          const inputs = [...document.querySelectorAll("input")];
+          const next = inputs.find(x => !x.disabled && x !== inp);
+          if(next) next.focus();
         }
       });
       td.appendChild(inp);
