@@ -43,21 +43,24 @@ function gen100(){
       inp.type = "number";
       inp.dataset.ans = ans;
       inp.placeholder = `${a}×${b}`;
-      inp.addEventListener("input",()=>{
+      inp.addEventListener("change",()=>{
         const val = Number(inp.value);
         const ok = val === ans;
         inp.classList.toggle("correct",ok);
         inp.classList.toggle("wrong",!ok);
-        if(ok&&!inp.disabled){
+        if(ok && !inp.disabled){
           inp.disabled = true;
           correct++;
           $("#correct").textContent = correct;
           cellLogs.push({time:new Date().toISOString(),row:r,col:c,val:val,correct:ans});
-          const inputs = [...document.querySelectorAll("input")];
-          const next = inputs.find(x => !x.disabled && x !== inp);
-          if(next) next.focus();
+          // 🔽 ここが追加部分：次の未入力に自動フォーカス
+          const allInputs = [...document.querySelectorAll("input")];
+          const currentIndex = allInputs.indexOf(inp);
+          const nextInput = allInputs.slice(currentIndex + 1).find(x => !x.disabled);
+          if (nextInput) nextInput.focus();
         }
       });
+
       td.appendChild(inp);
       tr.appendChild(td);
     }
