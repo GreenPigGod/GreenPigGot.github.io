@@ -1,83 +1,51 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>私の制作物</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>認証コード取得</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            text-align: center;
+        }
+        #code {
+            font-size: 1.5em;
+            margin: 20px;
+            color: #333;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1.2em;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>私のポートフォリオ</h1>
-    <nav>
-      <ul>
-        <li><a href="#about">自己紹介</a></li>
-        <li><a href="#works">制作物</a></li>
-        <li><a href="#contact">連絡先</a></li>
-      </ul>
-    </nav>
-  </header>
+    <h1>認証コード</h1>
+    <p>下のコードをコピーしてアプリに貼り付けてください</p>
+    <div id="code">読み込み中...</div>
+    <button onclick="copyCode()">コピー</button>
 
-  <section id="about">
-    <h2>自己紹介</h2>
-    <p>こんにちは！私は創作が大好きな開発者です。</p>
-  </section>
+    <script>
+        // URLからcodeパラメータを取得
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
 
-  <section id="works">
-    <h2>制作物一覧</h2>
-    <div class="works-container">
-      <div class="work-card">
-        <h3>MuseSDK</h3>
-        <p>脳波を計測</p>
-        <a href="MuseSDK">→ 詳細を見る</a>
-      </div>
-      <div class="work-card">
-        <h3>ebuyuoY</h3>
-        <p>現在頑張ってます。</p>
-        <a href="ebutuoY">→ サイトを見る</a>
-      </div>
-      <div class="work-card">
-        <h3>ヴィジェット</h3>
-        <p>自分のための技術</p>
-        <a href="widget">→ 詳細を見る</a>
-      </div>
-      <div class="work-card">
-        <h3>voc</h3>
-        <p>脳波計測の実験用＿英単語ログがたくさん</p>
-        <a href="voc">→ 詳細を見る</a>
-      </div>
-      <div class="work-card">
-        <h3>LINEWORKSのAPI連携アプリ</h3>
-        <p>OAuth認証の勉強</p>
-        <a href="lineworks_api_app">→ 詳細を見る</a>
-      </div>
-      <div class="work-card">
-        <h3>Englishes</h3>
-        <p>OpenAIAPIの勉強、構文解析は大失敗、TTS読み上げは完璧</p>
-        <a href="Englishes">→ 詳細を見る</a>
-      </div>
-      <div class="work-card">
-        <h3>行列計算</h3>
-        <p>脳波計測と同期</p>
-        <a href="matrix.html">→ 詳細を見る</a>
-      </div>
-      <div class="work-card">
-        <h3>100マス計算</h3>
-        <p>脳波計測と同期</p>
-        <a href="plus.html">→ 詳細を見る</a>
-      </div>
-    </div>
-  </section>
+        if (code) {
+            document.getElementById('code').textContent = code;
+        } else {
+            document.getElementById('code').textContent = "コードが見つかりません";
+        }
 
-  <section id="contact">
-    <h2>連絡先</h2>
-    <p>お問い合わせは <a href="mailto:shenmingtianzhong450@gmail.com">メール</a> にてお願いします。</p>
-  </section>
-
-  <footer>
-    <p>&copy; 2025 私の名前</p>
-  </footer>
-
-  <script src="script.js"></script>
+        function copyCode() {
+            if (code) {
+                navigator.clipboard.writeText(code).then(() => {
+                    alert("認証コードをコピーしました");
+                });
+            }
+        }
+    </script>
 </body>
 </html>
